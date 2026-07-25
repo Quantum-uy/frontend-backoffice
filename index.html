@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Panel Interno</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard" class="active"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Panel interno</div>
+                    <h1>Resumen operativo</h1>
+                </div>
+                <div class="user-role" id="user-role"></div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="stat-camiones">-</div>
+                    <div class="label">Camiones disponibles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="stat-usuarios">-</div>
+                    <div class="label">Usuarios registrados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="stat-contenedores">-</div>
+                    <div class="label">Contenedores registrados</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const usuario = getUsuario();
+        if (usuario) {
+            document.getElementById('user-role').textContent = usuario.rol || 'Funcionario';
+            loadStats();
+        }
+
+        async function loadStats() {
+            try {
+                const [camiones, usuarios, contenedores] = await Promise.all([
+                    fetch(API_CAMIONES + '/camiones').then(r => r.json()),
+                    fetch(API_USUARIOS + '/usuarios').then(r => r.json()),
+                    fetch(API_GESTION + '/contenedores').then(r => r.json())
+                ]);
+                document.getElementById('stat-camiones').textContent = camiones.length;
+                document.getElementById('stat-usuarios').textContent = usuarios.length;
+                document.getElementById('stat-contenedores').textContent = contenedores.length;
+            } catch (e) {
+                console.error('Error cargando stats:', e);
+            }
+        }
+    </script>
+</body>
+</html>

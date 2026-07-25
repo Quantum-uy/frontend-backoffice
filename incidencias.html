@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Incidencias</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias" class="active"><span>Incidencias</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Operaciones</div>
+                    <h1>Incidencias</h1>
+                </div>
+                <select id="filtro-estado" onchange="filtrar()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none">
+                    <option value="">Todos los estados</option>
+                    <option value="abierta">Abierta</option>
+                    <option value="en_proceso">En proceso</option>
+                    <option value="resuelta">Resuelta</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <div class="search-bar">
+                    <input type="text" id="buscar" placeholder="Buscar por tipo, zona o ubicación" oninput="filtrar()">
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo</th>
+                                <th>Zona</th>
+                                <th>Ubicación</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-incidencias"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal detalle -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal" style="max-width:520px">
+            <h2>Detalle de incidencia</h2>
+            <div id="modal-detalle"></div>
+            <div class="form-group" style="margin-top:20px">
+                <label for="nuevo-estado">Cambiar estado</label>
+                <select id="nuevo-estado">
+                    <option value="abierta">Abierta</option>
+                    <option value="en_proceso">En proceso</option>
+                    <option value="resuelta">Resuelta</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="width:auto" onclick="guardarEstado()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/incidencias.js"></script>
+</body>
+</html>

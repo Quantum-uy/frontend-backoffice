@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Contenedores</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores" class="active"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Infraestructura</div>
+                    <h1>Contenedores</h1>
+                </div>
+                <button class="btn btn-primary" onclick="abrirModal()">+ Agregar contenedor</button>
+            </div>
+
+            <div class="card">
+                <div class="search-bar">
+                    <input type="text" id="buscar" placeholder="Buscar por ubicación, zona o estado" oninput="filtrar()">
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ubicación</th>
+                                <th>Zona</th>
+                                <th>Estado</th>
+                                <th>Tipo residuo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-contenedores"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modal-titulo">Agregar contenedor</h2>
+            <form id="form-contenedor">
+                <input type="hidden" id="contenedor-id">
+                <div class="form-group">
+                    <label for="ubicacion">Ubicación</label>
+                    <input type="text" id="ubicacion" placeholder="Calle y número" required>
+                </div>
+                <div class="form-group">
+                    <label for="zona">Zona</label>
+                    <input type="text" id="zona" placeholder="Ej. Centro" required>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado</label>
+                    <select id="estado">
+                        <option value="funcional">Funcional</option>
+                        <option value="danado">Dañado</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="tipo_residuo">Tipo de residuo</label>
+                    <input type="text" id="tipo_residuo" placeholder="Ej. Orgánico">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width:auto">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/contenedores.js"></script>
+</body>
+</html>

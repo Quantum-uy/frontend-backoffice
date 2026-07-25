@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Usuarios</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios" class="active"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Administración</div>
+                    <h1>Usuarios</h1>
+                </div>
+                <button class="btn btn-primary" onclick="abrirModal()">+ Agregar usuario</button>
+            </div>
+
+            <div class="card">
+                <div class="search-bar">
+                    <input type="text" id="buscar" placeholder="Buscar por nombre, email o rol" oninput="filtrar()">
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modal-titulo">Agregar usuario</h2>
+            <form id="form-usuario">
+                <div class="form-group">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="apellido">Apellido</label>
+                    <input type="text" id="apellido" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="contrasena">Contraseña</label>
+                    <input type="password" id="contrasena" required>
+                </div>
+                <div class="form-group">
+                    <label for="rol">Rol</label>
+                    <select id="rol">
+                        <option value="administrador">Administrador</option>
+                        <option value="operario">Operario</option>
+                        <option value="conductor">Conductor</option>
+                        <option value="peon">Peón</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width:auto">Crear usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/usuarios.js"></script>
+</body>
+</html>
