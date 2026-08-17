@@ -2,6 +2,13 @@ const API_USUARIOS = 'http://localhost/sigeru/api-usuarios';
 const API_CAMIONES = 'http://localhost/sigeru/api-camiones';
 const API_GESTION = 'http://localhost/sigeru/api-gestion';
 
+const PERMISOS = {
+    administrador: ['dashboard', 'usuarios', 'camiones', 'contenedores', 'rutas', 'incidencias', 'centros-acopio', 'maquinaria'],
+    operario:      ['dashboard', 'contenedores', 'incidencias', 'centros-acopio', 'maquinaria'],
+    conductor:     ['dashboard', 'rutas', 'incidencias'],
+    peon:          ['dashboard', 'rutas', 'incidencias']
+};
+
 function getUsuario() {
     const data = sessionStorage.getItem('usuario');
     if (!data) {
@@ -22,6 +29,18 @@ function setActivePage(page) {
     });
 }
 
+function aplicarPermisos() {
+    const data = sessionStorage.getItem('usuario');
+    if (!data) return;
+    const usuario = JSON.parse(data);
+    const permitidos = PERMISOS[usuario.rol] || [];
+    document.querySelectorAll('.sidebar nav a[data-page]').forEach(a => {
+        if (!permitidos.includes(a.dataset.page)) {
+            a.style.display = 'none';
+        }
+    });
+}
+
 function getBadgeClass(estado) {
     const map = {
         'disponible': 'badge-success',
@@ -38,3 +57,5 @@ function getBadgeClass(estado) {
     };
     return map[estado] || 'badge-info';
 }
+
+document.addEventListener('DOMContentLoaded', aplicarPermisos);
