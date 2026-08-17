@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Maquinaria</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
+                <a href="centros-acopio.html" data-page="centros-acopio"><span>Centros de Acopio</span></a>
+                <a href="maquinaria.html" data-page="maquinaria" class="active"><span>Maquinaria</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Infraestructura</div>
+                    <h1>Maquinaria</h1>
+                </div>
+                <button class="btn btn-primary" onclick="abrirModal()">+ Agregar maquinaria</button>
+            </div>
+
+            <div class="card">
+                <div class="search-bar">
+                    <input type="text" id="buscar" placeholder="Buscar por tipo o estado" oninput="filtrar()">
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Centro de Acopio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-maquinaria"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modal-titulo">Agregar maquinaria</h2>
+            <form id="form-maquinaria">
+                <input type="hidden" id="maq-id">
+                <div class="form-group">
+                    <label for="tipo">Tipo</label>
+                    <input type="text" id="tipo" placeholder="Ej. Compactadora, Grúa" required>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado</label>
+                    <select id="estado">
+                        <option value="operativa">Operativa</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                        <option value="fuera_servicio">Fuera de servicio</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="id_centro">Centro de Acopio</label>
+                    <select id="id_centro">
+                        <option value="">-- Sin asignar --</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width:auto">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/maquinaria.js"></script>
+</body>
+</html>
