@@ -24,7 +24,7 @@ function renderTabla(data) {
             : u.estado === 'pendiente' ? 'badge-warning'
             : 'badge-danger';
 
-        let acciones = `<a class="action-link" onclick="ver(${u.id_usuario})">Ver</a>`;
+        let acciones = `<a class="action-link" onclick="editar(${u.id_usuario})">Editar</a>`;
 
         if (u.estado === 'pendiente') {
             acciones += ` <a class="action-link" onclick="cambiarEstado(${u.id_usuario}, 'activo')">Aprobar</a>`;
@@ -34,6 +34,7 @@ function renderTabla(data) {
         } else {
             acciones += ` <a class="action-link" onclick="cambiarEstado(${u.id_usuario}, 'activo')">Activar</a>`;
         }
+        acciones += ` <a class="action-link delete" onclick="eliminar(${u.id_usuario})">Eliminar</a>`;
 
         return `
         <tr>
@@ -57,7 +58,10 @@ function filtrar() {
 }
 
 function abrirModal() {
+    document.getElementById('modal-titulo').textContent = 'Agregar usuario';
     document.getElementById('form-usuario').reset();
+    document.getElementById('usuario-id').value = '';
+    document.getElementById('contrasena').required = true;
     document.getElementById('modal').classList.add('active');
 }
 
@@ -80,41 +84,49 @@ async function cambiarEstado(id, estado) {
     }
 }
 
-async function ver(id) {
-    try {
-        const res = await fetch(`${API_USUARIOS}/usuarios/${id}`);
-        const u = await res.json();
-        alert(`Nombre: ${u.nombre}\nEmail: ${u.email}\nRol: ${u.rol}\nEstado: ${u.estado}`);
-    } catch (e) {
-        alert('Error al obtener usuario');
-    }
+async function editar(id) {
+    const u = usuarios.find(x => x.id_usuario == id);
+    document.getElementById('modal-titulo').textContent = 'Editar usuario';
+    document.getElementById('usuario-id').value  = u.id_usuario;
+    document.getElementById('nombre').value      = u.nombre;
+    document.getElementById('apellido').value    = u.apellido || '';
+    document.getElementById('email').value       = u.email;
+    document.getElementById('contrasena').value  = '';
+    document.getElementById('rol').value         = u.rol;
+    document.getElementById('contrasena').required = false;
+    document.getElementById('modal').classList.add('active');
+}
+
+async function eliminar(id) {
+    if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    const res = await fetch(`${API_USUARIOS}/usuarios/${id}`, { method: 'DELETE' });
+    if (res.ok) cargarUsuarios();
+    else alert('No se pudo eliminar el usuario');
 }
 
 document.getElementById('form-usuario').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const id = document.getElementById('usuario-id').value;
 
     const body = {
-        nombre: document.getElementById('nombre').value,
-        apellido: document.getElementById('apellido').value,
-        email: document.getElementById('email').value,
-        contrasena: document.getElementById('contrasena').value,
-        rol: document.getElementById('rol').value
+        nombre:    document.getElementById('nombre').value,
+        apellido:  document.getElementById('apellido').value,
+        email:     document.getElementById('email').value,
+        rol:       document.getElementById('rol').value
     };
+    if (!id) body.contrasena = document.getElementById('contrasena').value;
+
+    const url    = id ? `${API_USUARIOS}/usuarios/${id}` : `${API_USUARIOS}/usuarios`;
+    const method = id ? 'PUT' : 'POST';
 
     try {
-        const res = await fetch(`${API_USUARIOS}/usuarios`, {
-            method: 'POST',
+        const res = await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-
         const data = await res.json();
-
-        if (!res.ok) {
-            alert(data.error || 'Error al crear usuario');
-            return;
-        }
-
+        if (!res.ok) { alert(data.error || 'Error al guardar'); return; }
         cerrarModal();
         cargarUsuarios();
     } catch (e) {
