@@ -24,7 +24,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             return;
         }
 
-        sessionStorage.setItem('usuario', JSON.stringify(data));
+        sessionStorage.setItem('usuario', JSON.stringify(data.usuario));
         window.location.href = 'index.html';
     } catch (err) {
         errorDiv.textContent = 'No se pudo conectar con el servidor';
