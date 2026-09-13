@@ -1,7 +1,27 @@
 const usuario = getUsuario();
 let contenedores = [];
+let tiposResiduo = [];
+const esOperario = usuario && usuario.rol === 'operario';
+
+if (esOperario) {
+    const btnAgregar = document.querySelector('.page-header .btn-primary');
+    if (btnAgregar) btnAgregar.style.display = 'none';
+}
 
 cargarContenedores();
+cargarTiposResiduo();
+
+async function cargarTiposResiduo() {
+    try {
+        const res = await fetch(API_GESTION + '/tipos-residuo');
+        tiposResiduo = await res.json();
+        const sel = document.getElementById('id_tipo_residuo');
+        sel.innerHTML = '<option value="">Seleccionar...</option>' +
+            tiposResiduo.map(t => `<option value="${t.id_tipo_residuo}">${t.nombre}</option>`).join('');
+    } catch (e) {
+        console.error('Error cargando tipos residuo:', e);
+    }
+}
 
 async function cargarContenedores() {
     try {
@@ -27,8 +47,9 @@ function renderTabla(data) {
             <td><span class="badge ${getBadgeClass(c.estado)}">${c.estado}</span></td>
             <td>${c.tipo_residuo || '-'}</td>
             <td>
-                <a class="action-link" onclick="editar(${c.id_contenedor})">Editar</a>
-                <a class="action-link delete" onclick="eliminar(${c.id_contenedor})">Eliminar</a>
+                ${esOperario ? `<span class="badge ${getBadgeClass(c.estado)}">${c.estado}</span>` :
+                `<a class="action-link" onclick="editar(${c.id_contenedor})">Editar</a>
+                <a class="action-link delete" onclick="eliminar(${c.id_contenedor})">Eliminar</a>`}
             </td>
         </tr>
     `).join('');
@@ -63,7 +84,7 @@ function editar(id) {
     document.getElementById('ubicacion').value = c.ubicacion;
     document.getElementById('zona').value = c.zona;
     document.getElementById('estado').value = c.estado;
-    document.getElementById('tipo_residuo').value = c.tipo_residuo || '';
+    document.getElementById('id_tipo_residuo').value = c.id_tipo_residuo || '';
     document.getElementById('modal').classList.add('active');
 }
 
@@ -84,7 +105,7 @@ document.getElementById('form-contenedor').addEventListener('submit', async (e) 
         ubicacion: document.getElementById('ubicacion').value,
         zona: document.getElementById('zona').value,
         estado: document.getElementById('estado').value,
-        tipo_residuo: document.getElementById('tipo_residuo').value
+        id_tipo_residuo: document.getElementById('id_tipo_residuo').value || null
     };
 
     try {

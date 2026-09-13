@@ -1,5 +1,11 @@
 const usuario = getUsuario();
 setActivePage('maquinaria');
+const esOperario = usuario && usuario.rol === 'operario';
+
+if (esOperario) {
+    const btnAgregar = document.querySelector('.page-header .btn-primary');
+    if (btnAgregar) btnAgregar.style.display = 'none';
+}
 
 let maquinaria = [];
 let centros = [];
@@ -31,8 +37,9 @@ function renderizar(lista) {
             <td><span class="badge ${getBadgeClass(m.estado)}">${m.estado}</span></td>
             <td>${m.centro_nombre || '-'}</td>
             <td>
-                <button class="btn btn-outline" style="padding:4px 10px" onclick="editar(${m.id_maquinaria})">Editar</button>
-                <button class="btn btn-danger"  style="padding:4px 10px" onclick="eliminar(${m.id_maquinaria})">Eliminar</button>
+                ${esOperario ? '-' :
+                `<button class="btn btn-outline" style="padding:4px 10px" onclick="editar(${m.id_maquinaria})">Editar</button>
+                <button class="btn btn-danger"  style="padding:4px 10px" onclick="eliminar(${m.id_maquinaria})">Eliminar</button>`}
             </td>
         </tr>
     `).join('');

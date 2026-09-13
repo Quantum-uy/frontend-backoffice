@@ -1,5 +1,11 @@
 const usuario = getUsuario();
 setActivePage('centros-acopio');
+const esOperario = usuario && usuario.rol === 'operario';
+
+if (esOperario) {
+    const btnAgregar = document.querySelector('.page-header .btn-primary');
+    if (btnAgregar) btnAgregar.style.display = 'none';
+}
 
 let centros = [];
 
@@ -17,8 +23,9 @@ function renderizar(lista) {
             <td>${c.ubicacion || '-'}</td>
             <td>${c.capacidad ? c.capacidad + ' ton' : '-'}</td>
             <td>
-                <button class="btn btn-outline" style="padding:4px 10px" onclick="editar(${c.id_centro})">Editar</button>
-                <button class="btn btn-danger"  style="padding:4px 10px" onclick="eliminar(${c.id_centro})">Eliminar</button>
+                ${esOperario ? '-' :
+                `<button class="btn btn-outline" style="padding:4px 10px" onclick="editar(${c.id_centro})">Editar</button>
+                <button class="btn btn-danger"  style="padding:4px 10px" onclick="eliminar(${c.id_centro})">Eliminar</button>`}
             </td>
         </tr>
     `).join('');

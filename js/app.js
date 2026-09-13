@@ -19,6 +19,7 @@ function getUsuario() {
 }
 
 function cerrarSesion() {
+    fetch(API_USUARIOS + '/logout', { method: 'POST' });
     sessionStorage.removeItem('usuario');
     window.location.href = 'login.html';
 }
@@ -34,11 +35,27 @@ function aplicarPermisos() {
     if (!data) return;
     const usuario = JSON.parse(data);
     const permitidos = PERMISOS[usuario.rol] || [];
+
     document.querySelectorAll('.sidebar nav a[data-page]').forEach(a => {
-        if (!permitidos.includes(a.dataset.page)) {
-            a.style.display = 'none';
-        }
+        a.style.display = permitidos.includes(a.dataset.page) ? '' : 'none';
     });
+
+    let roleEl = document.getElementById('user-role');
+    if (!roleEl) {
+        const header = document.querySelector('.page-header');
+        if (header) {
+            roleEl = document.createElement('div');
+            roleEl.className = 'user-role';
+            roleEl.id = 'user-role';
+            header.appendChild(roleEl);
+        }
+    }
+    if (roleEl) roleEl.textContent = usuario.rol || 'Funcionario';
+
+    const paginaActual = document.querySelector('.sidebar nav a.active');
+    if (paginaActual && !permitidos.includes(paginaActual.dataset.page)) {
+        window.location.href = 'index.html';
+    }
 }
 
 function getBadgeClass(estado) {

@@ -29,33 +29,48 @@
         </aside>
 
         <main class="main-content">
-            <div class="page-header">
-                <div>
-                    <div class="subtitle">Planificación</div>
-                    <h1>Rutas de recolección</h1>
+            <!-- Vista admin/operario -->
+            <div id="vista-admin">
+                <div class="page-header">
+                    <div>
+                        <div class="subtitle">Planificación</div>
+                        <h1>Rutas de recolección</h1>
+                    </div>
+                    <button class="btn btn-primary" onclick="abrirModal()">+ Agregar ruta</button>
                 </div>
-                <button class="btn btn-primary" onclick="abrirModal()">+ Agregar ruta</button>
+                <div class="card">
+                    <div class="search-bar">
+                        <input type="text" id="buscar" placeholder="Buscar por nombre, zona o estado" oninput="filtrar()">
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Zona</th>
+                                    <th>Conductor</th>
+                                    <th>Camión</th>
+                                    <th>Contenedores</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-rutas"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="search-bar">
-                    <input type="text" id="buscar" placeholder="Buscar por nombre, zona o estado" oninput="filtrar()">
+            <!-- Vista conductor/peon -->
+            <div id="vista-conductor" style="display:none">
+                <div class="page-header">
+                    <div>
+                        <div class="subtitle">Mi recorrido</div>
+                        <h1>Mis rutas asignadas</h1>
+                    </div>
+                    <div class="user-role" id="user-role-rutas"></div>
                 </div>
-                <div style="overflow-x:auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Zona</th>
-                                <th>Color</th>
-                                <th>Contenedores</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-rutas"></tbody>
-                    </table>
-                </div>
+                <div id="lista-rutas-conductor"></div>
             </div>
         </main>
     </div>
@@ -74,8 +89,24 @@
                     <input type="text" id="zona" placeholder="Ej. Centro / Cordón" required>
                 </div>
                 <div class="form-group">
+                    <label for="numero">Número de sub-zona</label>
+                    <input type="number" id="numero" min="1" value="1">
+                </div>
+                <div class="form-group">
                     <label for="descripcion">Descripción</label>
                     <textarea id="descripcion" placeholder="Descripción del recorrido" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="id_conductor">Conductor asignado</label>
+                    <select id="id_conductor">
+                        <option value="">Sin asignar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="id_camion_ruta">Camión asignado</label>
+                    <select id="id_camion_ruta">
+                        <option value="">Sin asignar</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="color">Color en el mapa</label>
@@ -96,7 +127,8 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
-    <script src="js/rutas.js"></script>
+    <script src="js/app.js?v=4"></script>
+    <script src="js/rutas.js?v=4"></script>
 </body>
 </html>
+

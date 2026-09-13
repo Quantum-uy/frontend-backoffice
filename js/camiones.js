@@ -16,7 +16,7 @@ async function cargarCamiones() {
 function renderTabla(data) {
     const tbody = document.getElementById('tabla-camiones');
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999">No hay camiones registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999">No hay camiones registrados</td></tr>';
         return;
     }
     tbody.innerHTML = data.map(c => `
@@ -25,6 +25,9 @@ function renderTabla(data) {
             <td>${c.modelo}</td>
             <td><span class="badge ${getBadgeClass(c.estado)}">${c.estado}</span></td>
             <td>${c.tipo_residuo_nombre || '-'}</td>
+            <td>${c.conductor_nombre ? c.conductor_nombre + ' ' + c.conductor_apellido : '<span style="color:#999">-</span>'}</td>
+            <td>${c.peon_nombre ? c.peon_nombre + ' ' + c.peon_apellido : '<span style="color:#999">-</span>'}</td>
+            <td>${c.ruta_nombre || '<span style="color:#999">-</span>'}</td>
             <td>
                 <a class="action-link" onclick="editar(${c.id_camion})">Editar</a>
                 <a class="action-link delete" onclick="eliminar(${c.id_camion})">Eliminar</a>
