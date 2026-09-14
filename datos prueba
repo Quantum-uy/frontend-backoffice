@@ -1,0 +1,48 @@
+ADMINISTRADOR (acceso total):
+  Email:    admin@sigeru.uy
+  Pass:     admin123
+  Ve:       Dashboard (stats generales), Usuarios, Camiones,
+            Contenedores, Rutas, Incidencias, Centros de Acopio, Maquinaria
+  Puede:    CRUD completo en todo
+
+OPERARIO:
+  Email:    carlos@sigeru.uy
+  Pass:     (verificar en DB, hash bcrypt)
+  Ve:       Dashboard (contenedores/incidencias/centros), Contenedores,
+            Incidencias, Centros de Acopio, Maquinaria
+  Puede:    Ver datos (sin agregar/editar/eliminar), reportar incidencias
+
+CONDUCTOR:
+  Email:    martin@sigeru.uy
+  Pass:     (verificar en DB, hash bcrypt)
+  Ve:       Dashboard (bienvenida + ruta del dia), Rutas, Incidencias
+  Puede:    Ver sus rutas, marcar completada, reportar incidencias
+
+PEON:
+  Email:    diego@sigeru.uy
+  Pass:     (verificar en DB, hash bcrypt)
+  Ve:       Dashboard (bienvenida + ruta asignada), Rutas, Incidencias
+  Puede:    Ver sus rutas, reportar incidencias
+
+NOTA: Si no sabes la contrasena de un rol, entra como admin
+y crea un usuario nuevo con el rol que quieras probar.
+
+CAMIONES (2):
+  - Camiones registrados en el sistema
+
+CONTENEDORES (22):
+  - Distribuidos en: Pocitos, Buceo, Punta Carretas, Ciudad Vieja,
+    Aguada, Cordon, Tres Cruces
+  - Estados: funcional, danado
+
+RUTAS (3):
+  - Ruta Centro: Centro / Cordon / Palermo (activa, 5 contenedores)
+  - Ruta Costera: Pocitos / Buceo / Punta Carretas (activa, 5 contenedores)
+  - Ruta Norte: Aguada / Ciudad Vieja / Tres Cruces (activa, 5 contenedores)
+
+INCIDENCIAS (5):
+  - INC-00001: desborde, Pocitos, Av. Rivera y Soca (resuelta)
+  - INC-00002: rotura, Centro, 18 de Julio 1234 (abierta)
+  - INC-00003: desborde, Aguada, Constitucion y Andes (abierta)
+  - INC-00004: rotura, Palermo, Bvar. Espana y Jackson (abierta)
+  - INC-00005: desborde, Pocitos, Rbla. Gandhi y Benito Blanco (en_proceso)
