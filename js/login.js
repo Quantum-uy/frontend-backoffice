@@ -1,4 +1,4 @@
-const API_USUARIOS = 'http://localhost/sigeru/api-usuarios';
+const API_USUARIOS = '/sigeru/api-usuarios';
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
