@@ -1,6 +1,6 @@
-const API_USUARIOS = 'http://localhost/sigeru/api-usuarios';
-const API_CAMIONES = 'http://localhost/sigeru/api-camiones';
-const API_GESTION = 'http://localhost/sigeru/api-gestion';
+const API_USUARIOS = '/sigeru/api-usuarios';
+const API_CAMIONES = '/sigeru/api-camiones';
+const API_GESTION = '/sigeru/api-gestion';
 
 const PERMISOS = {
     administrador: ['dashboard', 'usuarios', 'camiones', 'contenedores', 'rutas', 'incidencias', 'centros-acopio', 'maquinaria'],
