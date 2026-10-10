@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Informes</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .filtros { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:flex-end; }
+        .filtros select, .filtros input { padding:.45rem .75rem; border:1px solid #ddd; border-radius:6px; font-size:.9rem; }
+        .stats-fila { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .kpi { background:var(--card-bg,#fff); border:1px solid #e5e7eb; border-radius:8px; padding:1.25rem; text-align:center; }
+        .kpi .num { font-size:2rem; font-weight:700; }
+        .kpi .lbl { font-size:.8rem; color:#666; margin-top:.25rem; }
+        .kpi.abierta .num  { color:#f59e0b; }
+        .kpi.proceso .num  { color:#3b82f6; }
+        .kpi.resuelta .num { color:#10b981; }
+        .kpi.total .num    { color:#6366f1; }
+        .top-list { list-style:none; padding:0; }
+        .top-list li { display:flex; justify-content:space-between; padding:.6rem .25rem; border-bottom:1px solid #f0f0f0; font-size:.9rem; }
+        .top-list li:last-child { border-bottom:none; }
+        .badge-num { background:#dc3545; color:#fff; border-radius:999px; padding:.1rem .55rem; font-size:.8rem; font-weight:600; }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><div class="logo-icon">S</div><span>SiGeRU</span></div>
+        <nav>
+            <a href="index.html"          data-page="dashboard">Dashboard</a>
+            <a href="usuarios.html"       data-page="usuarios">Usuarios</a>
+            <a href="camiones.html"       data-page="camiones">Camiones</a>
+            <a href="contenedores.html"   data-page="contenedores">Contenedores</a>
+            <a href="rutas.html"          data-page="rutas">Rutas</a>
+            <a href="incidencias.html"    data-page="incidencias">Incidencias</a>
+            <a href="centros-acopio.html" data-page="centros-acopio">Centros de Acopio</a>
+            <a href="maquinaria.html"     data-page="maquinaria">Maquinaria</a>
+            <a href="mantenimiento.html"  data-page="mantenimiento">Mantenimiento</a>
+            <a href="mapa.html"           data-page="mapa">Mapa</a>
+            <a href="informes.html"       data-page="informes" class="active">Informes</a>
+        </nav>
+        <div class="sidebar-footer"><a href="#" onclick="cerrarSesion()">Cerrar sesión</a></div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <div class="subtitle">Panel interno</div>
+                <h1>Informes y estadísticas</h1>
+            </div>
+            <div class="user-role" id="user-role"></div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="stats-fila">
+            <div class="kpi total">   <div class="num" id="kpi-total">-</div>   <div class="lbl">Total incidencias</div></div>
+            <div class="kpi abierta"> <div class="num" id="kpi-abierta">-</div> <div class="lbl">Abiertas</div></div>
+            <div class="kpi proceso"> <div class="num" id="kpi-proceso">-</div> <div class="lbl">En proceso</div></div>
+            <div class="kpi resuelta"><div class="num" id="kpi-resuelta">-</div><div class="lbl">Resueltas</div></div>
+        </div>
+
+        <!-- Top contenedores -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+            <div class="card" style="padding:1.25rem">
+                <h3 style="margin-bottom:1rem">Top contenedores con más incidencias</h3>
+                <ul class="top-list" id="top-contenedores"><li style="color:#999">Cargando...</li></ul>
+            </div>
+            <div class="card" style="padding:1.25rem">
+                <h3 style="margin-bottom:1rem">Top zonas afectadas</h3>
+                <ul class="top-list" id="top-zonas"><li style="color:#999">Cargando...</li></ul>
+            </div>
+        </div>
+
+        <!-- Listado filtrable -->
+        <div class="card" style="padding:1.25rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                <h3>Listado de incidencias</h3>
+                <button class="btn btn-secondary" onclick="exportarCSV()">Exportar CSV</button>
+                <button class="btn btn-secondary" onclick="exportarPDF()" style="margin-left:8px">Exportar PDF</button>
+            </div>
+            <div class="filtros">
+                <select id="f-estado" onchange="filtrar()">
+                    <option value="">Todos los estados</option>
+                    <option value="abierta">Abiertas</option>
+                    <option value="en_proceso">En proceso</option>
+                    <option value="resuelta">Resueltas</option>
+                </select>
+                <select id="f-tipo" onchange="filtrar()">
+                    <option value="">Todos los tipos</option>
+                    <option value="desborde">Desborde</option>
+                    <option value="rotura">Rotura</option>
+                    <option value="falta_recoleccion">Falta de recolección</option>
+                    <option value="otro">Otro</option>
+                </select>
+                <input type="text" id="f-zona" placeholder="Filtrar por zona..." oninput="filtrar()">
+                <input type="date" id="f-desde" onchange="filtrar()">
+                <input type="date" id="f-hasta" onchange="filtrar()">
+            </div>
+            <div style="overflow-x:auto">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Tipo</th><th>Zona</th><th>Ubicación</th>
+                            <th>Contenedor</th><th>Fecha reporte</th><th>Fecha resolución</th><th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body">
+                        <tr><td colspan="8" style="text-align:center;color:#999">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="conteo" style="margin-top:.75rem;font-size:.85rem;color:#666"></div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+const usuario = getUsuario();
+if (usuario) aplicarPermisos();
+
+let todasIncidencias = [];
+
+async function cargar() {
+    try {
+        const data = await fetch(API_GESTION + '/incidencias').then(r => r.json());
+        todasIncidencias = data;
+        calcularKPIs(data);
+        calcularTops(data);
+        filtrar();
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function calcularKPIs(data) {
+    document.getElementById('kpi-total').textContent   = data.length;
+    document.getElementById('kpi-abierta').textContent = data.filter(i=>i.estado==='abierta').length;
+    document.getElementById('kpi-proceso').textContent = data.filter(i=>i.estado==='en_proceso').length;
+    document.getElementById('kpi-resuelta').textContent= data.filter(i=>i.estado==='resuelta').length;
+}
+
+function calcularTops(data) {
+    // Top contenedores
+    const contContMap = {};
+    data.forEach(i => {
+        if (!i.id_contenedor) return;
+        const key = i.id_contenedor;
+        const label = i.contenedor_ubicacion ? `#${key} ${i.contenedor_ubicacion}` : `Contenedor #${key}`;
+        contContMap[key] = contContMap[key] || { label, count: 0 };
+        contContMap[key].count++;
+    });
+    const topCont = Object.values(contContMap).sort((a,b)=>b.count-a.count).slice(0,5);
+    document.getElementById('top-contenedores').innerHTML = topCont.length
+        ? topCont.map(x=>`<li><span>${x.label}</span><span class="badge-num">${x.count}</span></li>`).join('')
+        : '<li style="color:#999">Sin datos</li>';
+
+    // Top zonas
+    const zonaMap = {};
+    data.forEach(i => {
+        const z = i.zona || 'Sin zona';
+        zonaMap[z] = (zonaMap[z]||0) + 1;
+    });
+    const topZonas = Object.entries(zonaMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    document.getElementById('top-zonas').innerHTML = topZonas.length
+        ? topZonas.map(([z,n])=>`<li><span>${z}</span><span class="badge-num">${n}</span></li>`).join('')
+        : '<li style="color:#999">Sin datos</li>';
+}
+
+function filtrar() {
+    const estado = document.getElementById('f-estado').value;
+    const tipo   = document.getElementById('f-tipo').value;
+    const zona   = document.getElementById('f-zona').value.toLowerCase();
+    const desde  = document.getElementById('f-desde').value;
+    const hasta  = document.getElementById('f-hasta').value;
+
+    const filtrado = todasIncidencias.filter(i => {
+        if (estado && i.estado !== estado) return false;
+        if (tipo   && i.tipo  !== tipo)   return false;
+        if (zona   && !(i.zona||'').toLowerCase().includes(zona)) return false;
+        if (desde  && i.fecha_reporte < desde) return false;
+        if (hasta  && i.fecha_reporte > hasta) return false;
+        return true;
+    });
+
+    const tbody = document.getElementById('tabla-body');
+    if (!filtrado.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999">Sin resultados</td></tr>';
+        document.getElementById('conteo').textContent = '';
+        return;
+    }
+    tbody.innerHTML = filtrado.map(i => `
+        <tr>
+            <td>INC-${String(i.id_incidencia).padStart(5,'0')}</td>
+            <td>${i.tipo}</td>
+            <td>${i.zona||'-'}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.ubicacion||'-'}</td>
+            <td>${i.contenedor_ubicacion||'-'}</td>
+            <td>${i.fecha_reporte||'-'}</td>
+            <td>${i.fecha_resolucion||'-'}</td>
+            <td><span class="badge ${badgeInc(i.estado)}">${i.estado}</span></td>
+        </tr>`).join('');
+    document.getElementById('conteo').textContent = `Mostrando ${filtrado.length} de ${todasIncidencias.length} incidencias`;
+}
+
+function badgeInc(e) {
+    return e==='abierta'?'badge-pending':e==='en_proceso'?'badge-inactive':'badge-active';
+}
+
+function exportarCSV() {
+    const estado = document.getElementById('f-estado').value;
+    const tipo   = document.getElementById('f-tipo').value;
+    const zona   = document.getElementById('f-zona').value.toLowerCase();
+    const desde  = document.getElementById('f-desde').value;
+    const hasta  = document.getElementById('f-hasta').value;
+
+    const filtrado = todasIncidencias.filter(i => {
+        if (estado && i.estado !== estado) return false;
+        if (tipo   && i.tipo  !== tipo)   return false;
+        if (zona   && !(i.zona||'').toLowerCase().includes(zona)) return false;
+        if (desde  && i.fecha_reporte < desde) return false;
+        if (hasta  && i.fecha_reporte > hasta) return false;
+        return true;
+    });
+
+    const cabecera = ['ID','Tipo','Zona','Ubicacion','Contenedor','Fecha reporte','Fecha resolucion','Estado'];
+    const filas = filtrado.map(i => [
+        `INC-${String(i.id_incidencia).padStart(5,'0')}`,
+        i.tipo, i.zona||'', i.ubicacion||'',
+        i.contenedor_ubicacion||'',
+        i.fecha_reporte||'', i.fecha_resolucion||'', i.estado
+    ].map(v=>`"${v}"`).join(','));
+
+    const csv = [cabecera.join(','), ...filas].join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `incidencias-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
+
+function exportarPDF() {
+    const contenido = document.querySelector('.main-content');
+    const botones = contenido.querySelectorAll('button');
+    botones.forEach(b => b.style.display = 'none');
+
+    const opt = {
+        margin:      [10, 10, 10, 10],
+        filename:    `informe-incidencias-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:       { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(contenido).save().then(() => {
+        botones.forEach(b => b.style.display = '');
+    });
+}
+
+cargar();
+</script>
+</body>
+</html>

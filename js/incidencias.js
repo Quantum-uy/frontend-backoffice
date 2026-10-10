@@ -1,7 +1,9 @@
 const usuario = getUsuario();
 let incidencias = [];
 let incidenciaActual = null;
-const esConductorOPeon = usuario && (usuario.rol === 'conductor' || usuario.rol === 'peon' || usuario.rol === 'operario');
+let conductoresCache = [];
+const esConductorOPeon = usuario && (usuario.rol === 'conductor' || usuario.rol === 'peon');
+const esAdminOperario = usuario && (usuario.rol === 'administrador' || usuario.rol === 'operario');
 
 if (esConductorOPeon) {
     document.getElementById('vista-admin-inc').style.display = 'none';
@@ -37,7 +39,20 @@ if (esConductorOPeon) {
     });
 }
 
-cargarIncidencias();
+if (esAdminOperario) {
+    cargarConductores().then(() => cargarIncidencias());
+} else {
+    cargarIncidencias();
+}
+
+async function cargarConductores() {
+    try {
+        const res = await fetch(API_USUARIOS + '/conductores');
+        conductoresCache = await res.json();
+    } catch (e) {
+        conductoresCache = [];
+    }
+}
 
 async function cargarContenedoresSelect() {
     try {
@@ -56,7 +71,7 @@ async function cargarIncidencias() {
         const res = await fetch(API_GESTION + '/incidencias');
         incidencias = await res.json();
         if (esConductorOPeon) {
-            renderMisReportes(incidencias);
+            renderVistaCondutor(incidencias);
         } else {
             filtrar();
         }
@@ -65,21 +80,76 @@ async function cargarIncidencias() {
     }
 }
 
-function renderMisReportes(data) {
+function renderVistaCondutor(data) {
     const container = document.getElementById('mis-reportes');
-    if (data.length === 0) {
-        container.innerHTML = '<div class="card" style="padding:1.5rem;text-align:center;color:#888">No hay incidencias reportadas aún.</div>';
-        return;
-    }
-    container.innerHTML = data.slice(0, 10).map(inc => `
-        <div class="card" style="padding:1rem 1.5rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between">
-            <div>
-                <strong>${inc.tipo}</strong> — ${inc.ubicacion || 'Sin ubicación'}
-                <p style="color:#888;font-size:.85rem;margin-top:4px">${inc.zona || ''} · ${inc.fecha_reporte || ''}</p>
+    const asignadas = data.filter(inc => inc.id_conductor_asignado == usuario.id_usuario && inc.estado !== 'resuelta');
+    const reportadas = data.slice(0, 10);
+
+    let html = '';
+
+    if (asignadas.length > 0) {
+        html += '<h3 style="margin-bottom:1rem;color:var(--primary)">Incidencias asignadas a mí</h3>';
+        html += asignadas.map(inc => `
+            <div class="card" style="padding:1rem 1.5rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;border-left:4px solid var(--primary)">
+                <div>
+                    <strong>INC-${String(inc.id_incidencia).padStart(5, '0')}</strong> — ${inc.tipo}
+                    <p style="color:#888;font-size:.85rem;margin-top:4px">${inc.ubicacion || ''} · ${inc.zona || ''} · ${inc.fecha_reporte || ''}</p>
+                    ${inc.descripcion ? `<p style="font-size:.85rem;margin-top:4px">${inc.descripcion}</p>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="badge ${badgeIncidencia(inc.estado)}">${inc.estado}</span>
+                    ${inc.estado === 'abierta' ? `<button class="btn btn-primary" style="padding:6px 14px;font-size:.85rem" onclick="tomarIncidencia(${inc.id_incidencia})">Tomar</button>` : ''}
+                    ${inc.estado === 'en_proceso' ? `<button class="btn btn-primary" style="padding:6px 14px;font-size:.85rem" onclick="resolverIncidencia(${inc.id_incidencia})">Resolver</button>` : ''}
+                </div>
             </div>
-            <span class="badge ${badgeIncidencia(inc.estado)}">${inc.estado}</span>
-        </div>
-    `).join('');
+        `).join('');
+    }
+
+    html += '<h3 style="margin:1.5rem 0 1rem">Últimas incidencias</h3>';
+    if (reportadas.length === 0) {
+        html += '<div class="card" style="padding:1.5rem;text-align:center;color:#888">No hay incidencias reportadas aún.</div>';
+    } else {
+        html += reportadas.map(inc => `
+            <div class="card" style="padding:1rem 1.5rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                    <strong>${inc.tipo}</strong> — ${inc.ubicacion || 'Sin ubicación'}
+                    <p style="color:#888;font-size:.85rem;margin-top:4px">${inc.zona || ''} · ${inc.fecha_reporte || ''}</p>
+                </div>
+                <span class="badge ${badgeIncidencia(inc.estado)}">${inc.estado}</span>
+            </div>
+        `).join('');
+    }
+
+    container.innerHTML = html;
+}
+
+async function tomarIncidencia(id) {
+    try {
+        await fetch(`${API_GESTION}/incidencias/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'en_proceso', id_conductor_asignado: usuario.id_usuario })
+        });
+        mostrarToast('Incidencia tomada. Ahora estás a cargo.', 'info');
+        cargarIncidencias();
+    } catch (e) {
+        alert('Error al tomar la incidencia');
+    }
+}
+
+async function resolverIncidencia(id) {
+    if (!confirm('¿Confirmar que la incidencia fue resuelta?')) return;
+    try {
+        await fetch(`${API_GESTION}/incidencias/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'resuelta' })
+        });
+        mostrarToast('Incidencia marcada como resuelta.', 'success');
+        cargarIncidencias();
+    } catch (e) {
+        alert('Error al resolver la incidencia');
+    }
 }
 
 function filtrar() {
@@ -109,7 +179,7 @@ function renderTabla(data) {
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inc.ubicacion || '-'}</td>
             <td>${inc.fecha_reporte || '-'}</td>
             <td>${inc.contenedor_ubicacion || '-'}</td>
-            <td>${inc.conductor_nombre ? inc.conductor_nombre + ' ' + inc.conductor_apellido : '-'}</td>
+            <td>${inc.conductor_nombre ? inc.conductor_nombre + ' ' + inc.conductor_apellido : '<span style="color:#999">Sin asignar</span>'}</td>
             <td><span class="badge ${badgeIncidencia(inc.estado)}">${inc.estado}</span></td>
             <td><a class="action-link" onclick="verDetalle(${inc.id_incidencia})">Ver / Gestionar</a></td>
         </tr>
@@ -140,12 +210,16 @@ function verDetalle(id) {
             <tr><td style="padding:6px 0;color:#666">Ubicación</td><td>${inc.ubicacion || '-'}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Descripción</td><td>${inc.descripcion || '-'}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Contenedor</td><td>${inc.contenedor_ubicacion ? inc.contenedor_ubicacion + ' (' + inc.contenedor_zona + ')' : '-'}</td></tr>
-            <tr><td style="padding:6px 0;color:#666">Conductor asignado</td><td>${inc.conductor_nombre ? inc.conductor_nombre + ' ' + inc.conductor_apellido : 'Sin asignar'}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Fecha reporte</td><td>${inc.fecha_reporte || '-'}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Fecha resolución</td><td>${inc.fecha_resolucion || '-'}</td></tr>
         </table>
         ${imgHtml}
     `;
+
+    // Poblar select de conductores
+    const selCond = document.getElementById('asignar-conductor');
+    selCond.innerHTML = '<option value="">Sin asignar</option>' +
+        conductoresCache.map(c => `<option value="${c.id_usuario}" ${c.id_usuario == inc.id_conductor_asignado ? 'selected' : ''}>${c.nombre} ${c.apellido}</option>`).join('');
 
     document.getElementById('nuevo-estado').value = inc.estado;
     document.getElementById('modal').classList.add('active');
@@ -159,11 +233,18 @@ function cerrarModal() {
 async function guardarEstado() {
     if (!incidenciaActual) return;
     const nuevoEstado = document.getElementById('nuevo-estado').value;
+    const conductorSel = document.getElementById('asignar-conductor').value;
+
+    const body = { estado: nuevoEstado };
+    if (esAdminOperario) {
+        body.id_conductor_asignado = conductorSel ? parseInt(conductorSel) : null;
+    }
+
     try {
         await fetch(`${API_GESTION}/incidencias/${incidenciaActual.id_incidencia}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ estado: nuevoEstado })
+            body: JSON.stringify(body)
         });
         cerrarModal();
         cargarIncidencias();
