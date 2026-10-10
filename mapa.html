@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Mapa</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        #mapa-leaflet { height: calc(100vh - 180px); width: 100%; border-radius: 8px; }
+        .mapa-controls { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+        .mapa-controls input { flex: 1; min-width: 200px; padding: .5rem .75rem; border: 1px solid #ddd; border-radius: 6px; font-size: .9rem; }
+        .leyenda { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .85rem; }
+        .leyenda-item { display: flex; align-items: center; gap: .4rem; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+        .sq  { width: 12px; height: 12px; border-radius: 2px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><div class="logo-icon">S</div><span>SiGeRU</span></div>
+        <nav>
+            <a href="index.html"         data-page="dashboard">Dashboard</a>
+            <a href="usuarios.html"      data-page="usuarios">Usuarios</a>
+            <a href="camiones.html"      data-page="camiones">Camiones</a>
+            <a href="contenedores.html"  data-page="contenedores">Contenedores</a>
+            <a href="rutas.html"         data-page="rutas">Rutas</a>
+            <a href="incidencias.html"   data-page="incidencias">Incidencias</a>
+            <a href="centros-acopio.html" data-page="centros-acopio">Centros de Acopio</a>
+            <a href="maquinaria.html"    data-page="maquinaria">Maquinaria</a>
+            <a href="mantenimiento.html" data-page="mantenimiento">Mantenimiento</a>
+            <a href="mapa.html"          data-page="mapa" class="active">Mapa</a>
+            <a href="informes.html"      data-page="informes">Informes</a>
+        </nav>
+        <div class="sidebar-footer"><a href="#" onclick="cerrarSesion()">Cerrar sesión</a></div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <div class="subtitle">Panel interno</div>
+                <h1>Mapa interactivo</h1>
+            </div>
+            <div class="user-role" id="user-role"></div>
+        </div>
+
+        <div class="mapa-controls">
+            <input type="text" id="buscar-direccion" placeholder="Buscar dirección en Montevideo...">
+            <button class="btn btn-primary" onclick="buscarDireccion()">Buscar</button>
+            <div class="leyenda">
+                <span class="leyenda-item"><span class="dot" style="background:#1a5c52"></span> Funcional</span>
+                <span class="leyenda-item"><span class="dot" style="background:#e8a838"></span> Dañado</span>
+                <span class="leyenda-item"><span class="dot" style="background:#dc3545"></span> Desbordado</span>
+                <span class="leyenda-item"><span class="sq"  style="background:#dc3545">!</span> Incidencia abierta</span>
+            </div>
+        </div>
+
+        <div id="mapa-leaflet"></div>
+    </main>
+</div>
+
+<script src="js/app.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const usuario = getUsuario();
+if (usuario) aplicarPermisos();
+
+const coordsPorZona = {
+    'Centro':[-34.9058,-56.1913],'Pocitos':[-34.9163,-56.1594],
+    'Cordón':[-34.9082,-56.1844],'Cordon':[-34.9082,-56.1844],
+    'Punta Carretas':[-34.9233,-56.1601],'Palermo':[-34.9020,-56.1754],
+    'Aguada':[-34.8987,-56.1876],'Ciudad Vieja':[-34.9064,-56.2072],
+    'Tres Cruces':[-34.8994,-56.1697],'Buceo':[-34.9108,-56.1469],
+    'Malvín':[-34.9001,-56.1302],'Malvin':[-34.9001,-56.1302],
+    'Reducto':[-34.8870,-56.1880],'Prado':[-34.8800,-56.1950],
+};
+
+function coords(zona, idx) {
+    const base = coordsPorZona[zona] || [-34.9011,-56.1645];
+    return [base[0] + Math.sin(idx*2.3)*0.0025, base[1] + Math.cos(idx*1.7)*0.0025];
+}
+
+function iconContenedor(color) {
+    return L.divIcon({ className:'', iconSize:[14,14], iconAnchor:[7,7], popupAnchor:[0,-10],
+        html:`<div style="width:14px;height:14px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>` });
+}
+
+function iconIncidencia() {
+    return L.divIcon({ className:'', iconSize:[18,18], iconAnchor:[9,9], popupAnchor:[0,-10],
+        html:`<div style="width:18px;height:18px;background:#dc3545;border:2px solid white;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold">!</div>` });
+}
+
+let mapa, marcadorBusqueda;
+
+async function buscarDireccion() {
+    const q = document.getElementById('buscar-direccion').value.trim();
+    if (!q || !mapa) return;
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=uy&limit=1`);
+        const d = await r.json();
+        if (!d.length) { alert('Dirección no encontrada'); return; }
+        const lat = parseFloat(d[0].lat), lon = parseFloat(d[0].lon);
+        if (marcadorBusqueda) mapa.removeLayer(marcadorBusqueda);
+        marcadorBusqueda = L.marker([lat,lon]).addTo(mapa).bindPopup(`<strong>Búsqueda</strong><br>${d[0].display_name}`).openPopup();
+        mapa.flyTo([lat,lon], 16);
+    } catch(e) { console.warn(e); }
+}
+
+document.getElementById('buscar-direccion').addEventListener('keydown', e => { if(e.key==='Enter') buscarDireccion(); });
+
+async function iniciarMapa() {
+    mapa = L.map('mapa-leaflet', { center:[-34.9058,-56.1645], zoom:14 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:'© OpenStreetMap', maxZoom:19
+    }).addTo(mapa);
+
+    // Rutas con contenedores
+    try {
+        const rutas = await fetch(API_GESTION + '/rutas').then(r=>r.json());
+        rutas.forEach(ruta => {
+            if (!ruta.contenedores || !ruta.contenedores.length) return;
+            const puntos = ruta.contenedores.map((c,i) => coords(c.zona, c.orden_en_ruta||i));
+            L.polyline(puntos, { color: ruta.color||'#1a5c52', weight:3, opacity:.8, dashArray:'7 4' })
+                .addTo(mapa)
+                .bindPopup(`<strong>${ruta.nombre}</strong><br>${ruta.zona} — ${ruta.contenedores.length} contenedores`);
+
+            ruta.contenedores.forEach((c,i) => {
+                const color = c.estado==='funcional' ? (ruta.color||'#1a5c52')
+                            : c.estado==='desbordado' ? '#dc3545'
+                            : c.estado==='danado'     ? '#e8a838' : '#999';
+                L.marker(coords(c.zona, c.orden_en_ruta||i), { icon: iconContenedor(color) })
+                    .addTo(mapa)
+                    .bindPopup(`<strong>Contenedor #${c.id_contenedor}</strong><br>${c.ubicacion||''}<br><em>${c.zona||''}</em><br>Estado: <strong>${c.estado}</strong><br>Residuo: ${c.tipo_residuo||'-'}`);
+            });
+        });
+    } catch(e) { console.warn('Rutas:', e); }
+
+    // Incidencias abiertas
+    try {
+        const incs = await fetch(API_GESTION + '/incidencias').then(r=>r.json());
+        incs.filter(i=>i.estado!=='resuelta').forEach((inc,i) => {
+            L.marker(coords(inc.zona, i+50), { icon: iconIncidencia() })
+                .addTo(mapa)
+                .bindPopup(`<strong>INC-${String(inc.id_incidencia).padStart(5,'0')}</strong><br>Tipo: ${inc.tipo}<br>${inc.ubicacion||''}<br>Estado: <strong>${inc.estado}</strong>`);
+        });
+    } catch(e) { console.warn('Incidencias:', e); }
+}
+
+iniciarMapa();
+</script>
+</body>
+</html>

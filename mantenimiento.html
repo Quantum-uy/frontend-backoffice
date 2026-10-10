@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiGeRU - Mantenimiento de Camiones</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">S</div>
+                <span>SiGeRU</span>
+            </div>
+            <nav>
+                <a href="index.html" data-page="dashboard"><span>Dashboard</span></a>
+                <a href="usuarios.html" data-page="usuarios"><span>Usuarios</span></a>
+                <a href="camiones.html" data-page="camiones"><span>Camiones</span></a>
+                <a href="contenedores.html" data-page="contenedores"><span>Contenedores</span></a>
+                <a href="rutas.html" data-page="rutas"><span>Rutas</span></a>
+                <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
+                <a href="centros-acopio.html" data-page="centros-acopio"><span>Centros de Acopio</span></a>
+                <a href="maquinaria.html" data-page="maquinaria"><span>Maquinaria</span></a>
+                <a href="mantenimiento.html" data-page="mantenimiento" class="active"><span>Mantenimiento</span></a>
+                <a href="mapa.html" data-page="mapa"><span>Mapa</span></a>
+                <a href="informes.html" data-page="informes"><span>Informes</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <div class="subtitle">Flota</div>
+                    <h1>Mantenimiento preventivo</h1>
+                </div>
+                <button class="btn btn-primary" onclick="abrirModalNuevo()">+ Nuevo mantenimiento</button>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom:1.5rem">
+                <div class="stat-card"><div class="stat-number" id="kpi-total">0</div><div class="stat-label">Total</div></div>
+                <div class="stat-card"><div class="stat-number" id="kpi-pendiente">0</div><div class="stat-label">Pendientes</div></div>
+                <div class="stat-card"><div class="stat-number" id="kpi-en-curso">0</div><div class="stat-label">En curso</div></div>
+                <div class="stat-card"><div class="stat-number" id="kpi-completado">0</div><div class="stat-label">Completados</div></div>
+            </div>
+
+            <div class="card">
+                <div class="search-bar">
+                    <input type="text" id="buscar" placeholder="Buscar por matrícula, tipo o descripción" oninput="filtrar()">
+                    <select id="filtro-estado" onchange="filtrar()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;margin-left:8px">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_curso">En curso</option>
+                        <option value="completado">Completado</option>
+                    </select>
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Camión</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-mantenimiento"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal nuevo mantenimiento -->
+    <div class="modal-overlay" id="modal-nuevo">
+        <div class="modal" style="max-width:480px">
+            <h2 id="modal-titulo">Nuevo mantenimiento</h2>
+            <form id="form-mantenimiento">
+                <div class="form-group">
+                    <label for="mant-camion">Camión</label>
+                    <select id="mant-camion" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="mant-tipo">Tipo de mantenimiento</label>
+                    <select id="mant-tipo" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="preventivo">Preventivo</option>
+                        <option value="correctivo">Correctivo</option>
+                        <option value="revision">Revisión técnica</option>
+                        <option value="cambio_aceite">Cambio de aceite</option>
+                        <option value="neumaticos">Neumáticos</option>
+                        <option value="frenos">Frenos</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mant-fecha">Fecha programada</label>
+                    <input type="date" id="mant-fecha" required>
+                </div>
+                <div class="form-group">
+                    <label for="mant-descripcion">Descripción</label>
+                    <textarea id="mant-descripcion" rows="3" placeholder="Detalle del mantenimiento..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="cerrarModalNuevo()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width:auto">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal cambiar estado -->
+    <div class="modal-overlay" id="modal-estado">
+        <div class="modal" style="max-width:400px">
+            <h2>Cambiar estado</h2>
+            <div id="detalle-mant"></div>
+            <div class="form-group" style="margin-top:16px">
+                <label for="nuevo-estado-mant">Estado</label>
+                <select id="nuevo-estado-mant">
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_curso">En curso</option>
+                    <option value="completado">Completado</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="cerrarModalEstado()">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="width:auto" onclick="guardarEstadoMant()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js?v=4"></script>
+    <script src="js/mantenimiento.js"></script>
+</body>
+</html>

@@ -1,11 +1,12 @@
-const API_USUARIOS = '/sigeru/api-usuarios';
-const API_CAMIONES = '/sigeru/api-camiones';
-const API_GESTION = '/sigeru/api-gestion';
+const API_USUARIOS    = '/sigeru/api-usuarios';
+const API_CAMIONES    = '/sigeru/api-camiones';
+const API_GESTION     = '/sigeru/api-gestion';
+const API_RECOLECCION = '/sigeru/api-recoleccion';
 
 const PERMISOS = {
-    administrador: ['dashboard', 'usuarios', 'camiones', 'contenedores', 'rutas', 'incidencias', 'centros-acopio', 'maquinaria'],
-    operario:      ['dashboard', 'contenedores', 'incidencias', 'centros-acopio', 'maquinaria'],
-    conductor:     ['dashboard', 'rutas', 'incidencias'],
+    administrador: ['dashboard', 'usuarios', 'camiones', 'contenedores', 'rutas', 'incidencias', 'centros-acopio', 'maquinaria', 'mantenimiento', 'mapa', 'informes'],
+    operario:      ['dashboard', 'camiones', 'contenedores', 'incidencias', 'centros-acopio', 'maquinaria', 'mantenimiento', 'mapa', 'informes'],
+    conductor:     ['dashboard', 'rutas', 'incidencias', 'mapa'],
     peon:          ['dashboard', 'rutas', 'incidencias']
 };
 
@@ -75,4 +76,49 @@ function getBadgeClass(estado) {
     return map[estado] || 'badge-info';
 }
 
-document.addEventListener('DOMContentLoaded', aplicarPermisos);
+// --- Sistema de notificaciones ---
+async function cargarNotificaciones() {
+    try {
+        const data = await fetch(API_GESTION + '/incidencias').then(r => r.json()).catch(() => []);
+        const usr = JSON.parse(sessionStorage.getItem('usuario'));
+        const abiertas = data.filter(i => i.estado === 'abierta').length;
+        const enProceso = data.filter(i => i.estado === 'en_proceso').length;
+        const pendientes = abiertas + enProceso;
+
+        const linkInc = document.querySelector('.sidebar nav a[data-page="incidencias"]');
+        if (linkInc && pendientes > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'notif-badge';
+            badge.textContent = pendientes > 99 ? '99+' : pendientes;
+            linkInc.style.position = 'relative';
+            linkInc.appendChild(badge);
+        }
+
+        if (!sessionStorage.getItem('notif_mostrada')) {
+            sessionStorage.setItem('notif_mostrada', '1');
+
+            if (usr && (usr.rol === 'conductor' || usr.rol === 'peon')) {
+                const misAsignadas = data.filter(i => i.id_conductor_asignado == usr.id_usuario && i.estado !== 'resuelta');
+                if (misAsignadas.length > 0) {
+                    mostrarToast(`Tenés ${misAsignadas.length} incidencia${misAsignadas.length > 1 ? 's' : ''} asignada${misAsignadas.length > 1 ? 's' : ''} pendiente${misAsignadas.length > 1 ? 's' : ''}.`, 'warning');
+                }
+            } else if (abiertas > 0) {
+                mostrarToast(`Hay ${abiertas} incidencia${abiertas > 1 ? 's' : ''} abierta${abiertas > 1 ? 's' : ''} pendientes de atención.`, 'warning');
+            }
+        }
+    } catch (e) { /* silencioso */ }
+}
+
+function mostrarToast(mensaje, tipo) {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + (tipo || 'info');
+    toast.innerHTML = `<span>${mensaje}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;font-size:1.2rem;cursor:pointer;margin-left:1rem">&times;</button>`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.classList.add('toast-visible'); }, 10);
+    setTimeout(() => { toast.classList.remove('toast-visible'); setTimeout(() => toast.remove(), 300); }, 6000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    aplicarPermisos();
+    if (sessionStorage.getItem('usuario')) cargarNotificaciones();
+});

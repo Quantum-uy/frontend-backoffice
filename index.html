@@ -22,6 +22,9 @@
                 <a href="incidencias.html" data-page="incidencias"><span>Incidencias</span></a>
                 <a href="centros-acopio.html" data-page="centros-acopio"><span>Centros de Acopio</span></a>
                 <a href="maquinaria.html" data-page="maquinaria"><span>Maquinaria</span></a>
+                <a href="mantenimiento.html" data-page="mantenimiento"><span>Mantenimiento</span></a>
+                <a href="mapa.html" data-page="mapa"><span>Mapa</span></a>
+                <a href="informes.html" data-page="informes"><span>Informes</span></a>
             </nav>
             <div class="sidebar-footer">
                 <a href="#" onclick="cerrarSesion()">Cerrar sesión</a>
@@ -62,11 +65,28 @@
                             <div class="stat-card"><div class="number" id="stat-camiones">-</div><div class="label">Camiones disponibles</div></div>
                             <div class="stat-card"><div class="number" id="stat-usuarios">-</div><div class="label">Usuarios registrados</div></div>
                             <div class="stat-card"><div class="number" id="stat-contenedores">-</div><div class="label">Contenedores registrados</div></div>
-                        </div>
-                        <div class="stats-grid" style="margin-top:1.5rem">
                             <div class="stat-card"><div class="number" id="stat-rutas">-</div><div class="label">Rutas activas</div></div>
-                            <div class="stat-card"><div class="number" id="stat-incidencias">-</div><div class="label">Incidencias abiertas</div></div>
+                            <div class="stat-card" style="border-left:4px solid #f59e0b"><div class="number" id="stat-incidencias" style="color:#f59e0b">-</div><div class="label">Incidencias abiertas</div></div>
                             <div class="stat-card"><div class="number" id="stat-centros">-</div><div class="label">Centros de acopio</div></div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
+                            <div class="card" style="padding:1.25rem">
+                                <h3 style="margin-bottom:1rem">Top contenedores con más incidencias</h3>
+                                <div id="top-contenedores-dash"><p style="color:#999;font-size:.9rem">Cargando...</p></div>
+                            </div>
+                            <div class="card" style="padding:1.25rem">
+                                <h3 style="margin-bottom:1rem">Estado de la flota</h3>
+                                <div id="flota-estado-dash"><p style="color:#999;font-size:.9rem">Cargando...</p></div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding:1.25rem;margin-top:1.5rem">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                                <h3>Incidencias recientes</h3>
+                                <a href="incidencias.html" class="btn btn-secondary" style="font-size:.8rem">Ver todas</a>
+                            </div>
+                            <div id="incidencias-recientes"><p style="color:#999;font-size:.9rem">Cargando...</p></div>
                         </div>`;
                     loadAdminStats();
                     break;
@@ -168,13 +188,82 @@
                     fetch(API_GESTION + '/incidencias').then(r => r.json()).catch(() => []),
                     fetch(API_GESTION + '/centros-acopio').then(r => r.json()).catch(() => [])
                 ]);
-                document.getElementById('stat-camiones').textContent = camiones.length;
+
+                document.getElementById('stat-camiones').textContent = camiones.filter(c => c.estado === 'disponible').length;
                 document.getElementById('stat-usuarios').textContent = usuarios.length;
                 document.getElementById('stat-contenedores').textContent = contenedores.length;
-                document.getElementById('stat-rutas').textContent = rutas.length;
+                document.getElementById('stat-rutas').textContent = rutas.filter(r => r.estado === 'activa' || r.estado === 'en_curso').length;
                 document.getElementById('stat-incidencias').textContent = incidencias.filter(i => i.estado === 'abierta').length;
                 document.getElementById('stat-centros').textContent = centros.length;
+
+                // Top contenedores con más incidencias
+                const contMap = {};
+                incidencias.forEach(i => {
+                    if (!i.id_contenedor) return;
+                    const key = i.id_contenedor;
+                    const label = i.contenedor_ubicacion || `Contenedor #${key}`;
+                    contMap[key] = contMap[key] || { label, total: 0, abiertas: 0 };
+                    contMap[key].total++;
+                    if (i.estado === 'abierta') contMap[key].abiertas++;
+                });
+                const topCont = Object.values(contMap).sort((a, b) => b.total - a.total).slice(0, 5);
+                const topEl = document.getElementById('top-contenedores-dash');
+                if (topCont.length) {
+                    const max = topCont[0].total || 1;
+                    topEl.innerHTML = topCont.map(c => `
+                        <div style="margin-bottom:.75rem">
+                            <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.25rem">
+                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%">${c.label}</span>
+                                <span style="font-weight:600">${c.total} <span style="color:#f59e0b;font-size:.75rem">(${c.abiertas} abiertas)</span></span>
+                            </div>
+                            <div style="height:6px;background:#f0f0f0;border-radius:3px">
+                                <div style="height:6px;background:#1a5c52;border-radius:3px;width:${Math.round(c.total/max*100)}%"></div>
+                            </div>
+                        </div>`).join('');
+                } else {
+                    topEl.innerHTML = '<p style="color:#999;font-size:.9rem">Sin datos</p>';
+                }
+
+                // Estado de la flota
+                const estados = { disponible: 0, en_ruta: 0, mantenimiento: 0, otro: 0 };
+                camiones.forEach(c => {
+                    if (estados[c.estado] !== undefined) estados[c.estado]++;
+                    else estados.otro++;
+                });
+                const flotas = [
+                    { label: 'Disponibles', val: estados.disponible, color: '#10b981' },
+                    { label: 'En ruta',     val: estados.en_ruta,     color: '#3b82f6' },
+                    { label: 'Mantenimiento', val: estados.mantenimiento, color: '#f59e0b' },
+                    { label: 'Otro',         val: estados.otro,        color: '#9ca3af' },
+                ];
+                const total = camiones.length || 1;
+                document.getElementById('flota-estado-dash').innerHTML = flotas.map(f => `
+                    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+                        <div style="width:10px;height:10px;border-radius:50%;background:${f.color};flex-shrink:0"></div>
+                        <span style="flex:1;font-size:.85rem">${f.label}</span>
+                        <span style="font-weight:700">${f.val}</span>
+                        <span style="font-size:.75rem;color:#999;width:36px;text-align:right">${Math.round(f.val/total*100)}%</span>
+                    </div>`).join('');
+
+                // Incidencias recientes (últimas 5)
+                const recientes = [...incidencias].sort((a,b) => (b.fecha_reporte||'').localeCompare(a.fecha_reporte||'')).slice(0, 5);
+                document.getElementById('incidencias-recientes').innerHTML = recientes.length
+                    ? `<table class="tabla"><thead><tr><th>ID</th><th>Tipo</th><th>Zona</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>
+                        ${recientes.map(i => `<tr>
+                            <td>INC-${String(i.id_incidencia).padStart(5,'0')}</td>
+                            <td>${i.tipo}</td>
+                            <td>${i.zona||'-'}</td>
+                            <td>${i.fecha_reporte||'-'}</td>
+                            <td><span class="badge ${badgeInc(i.estado)}">${i.estado}</span></td>
+                        </tr>`).join('')}
+                       </tbody></table>`
+                    : '<p style="color:#999;font-size:.9rem">No hay incidencias registradas.</p>';
+
             } catch (e) { console.error('Error stats admin:', e); }
+        }
+
+        function badgeInc(e) {
+            return e==='abierta'?'badge-pending':e==='en_proceso'?'badge-inactive':'badge-active';
         }
 
         async function loadOperarioStats() {
