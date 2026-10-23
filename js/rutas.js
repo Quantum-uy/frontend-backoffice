@@ -2,6 +2,7 @@ const usuario = getUsuario();
 let rutas = [];
 let conductores = [];
 let camionesDisponibles = [];
+let centrosAcopio = [];
 const esConductorOPeon = usuario && (usuario.rol === 'conductor' || usuario.rol === 'peon');
 
 if (esConductorOPeon) {
@@ -14,12 +15,14 @@ if (!esConductorOPeon) cargarDropdowns();
 
 async function cargarDropdowns() {
     try {
-        const [cRes, camRes] = await Promise.all([
+        const [cRes, camRes, centrosRes] = await Promise.all([
             fetch(API_USUARIOS + '/conductores'),
-            fetch(API_CAMIONES + '/camiones')
+            fetch(API_CAMIONES + '/camiones'),
+            fetch(API_GESTION + '/centros-acopio')
         ]);
         conductores = await cRes.json();
         camionesDisponibles = await camRes.json();
+        centrosAcopio = await centrosRes.json();
     } catch (e) {
         console.error('Error cargando dropdowns:', e);
     }
@@ -33,6 +36,10 @@ function llenarDropdowns(ruta) {
     const selCam = document.getElementById('id_camion_ruta');
     selCam.innerHTML = '<option value="">Sin asignar</option>' +
         camionesDisponibles.map(c => `<option value="${c.id_camion}" ${ruta && ruta.id_camion == c.id_camion ? 'selected' : ''}>${c.matricula} - ${c.modelo}</option>`).join('');
+
+    const selCentro = document.getElementById('id_centro_destino');
+    selCentro.innerHTML = '<option value="">Sin asignar</option>' +
+        centrosAcopio.map(c => `<option value="${c.id_centro}" ${ruta && ruta.id_centro_destino == c.id_centro ? 'selected' : ''}>${c.nombre} - ${c.ubicacion || ''}</option>`).join('');
 }
 
 async function cargarRutas() {
@@ -72,6 +79,7 @@ function renderListaConductor(data) {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;font-size:.9rem">
                 <div><strong>Camión:</strong> ${r.camion || 'Sin asignar'}</div>
                 <div><strong>Peón:</strong> ${r.peon || 'Sin asignar'}</div>
+                <div><strong>Destino:</strong> ${r.centro_destino || 'Sin asignar'}</div>
                 <div><strong>Contenedores:</strong> ${r.contenedores ? r.contenedores.length : 0}</div>
             </div>
             ${r.descripcion ? `<p style="color:#666;font-size:.85rem;margin-bottom:1rem">${r.descripcion}</p>` : ''}
@@ -126,7 +134,7 @@ function toggleCompletada(id) {
 function renderTabla(data) {
     const tbody = document.getElementById('tabla-rutas');
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">No hay rutas registradas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999">No hay rutas registradas</td></tr>';
         return;
     }
     tbody.innerHTML = data.map(r => `
@@ -135,6 +143,7 @@ function renderTabla(data) {
             <td>${r.zona}</td>
             <td>${r.conductor || '<span style="color:#999">Sin asignar</span>'}</td>
             <td>${r.camion || '<span style="color:#999">Sin asignar</span>'}</td>
+            <td>${r.centro_destino || '<span style="color:#999">-</span>'}</td>
             <td>${r.contenedores ? r.contenedores.length : 0}</td>
             <td><span class="badge ${r.estado === 'activa' ? 'badge-active' : 'badge-inactive'}">${r.estado}</span></td>
             <td>
@@ -207,6 +216,7 @@ document.getElementById('form-ruta').addEventListener('submit', async (e) => {
         estado:       document.getElementById('estado').value,
         id_conductor: document.getElementById('id_conductor').value || null,
         id_camion:    document.getElementById('id_camion_ruta').value || null,
+        id_centro_destino: document.getElementById('id_centro_destino').value || null,
     };
 
     try {

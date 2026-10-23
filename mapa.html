@@ -92,6 +92,7 @@ function iconIncidencia() {
 }
 
 let mapa, marcadorBusqueda;
+const esConductorOPeon = usuario && (usuario.rol === 'conductor' || usuario.rol === 'peon');
 
 async function buscarDireccion() {
     const q = document.getElementById('buscar-direccion').value.trim();
@@ -117,13 +118,35 @@ async function iniciarMapa() {
 
     // Rutas con contenedores
     try {
-        const rutas = await fetch(API_GESTION + '/rutas').then(r=>r.json());
+        let rutas = await fetch(API_GESTION + '/rutas').then(r=>r.json());
+        if (esConductorOPeon) {
+            rutas = rutas.filter(r => r.id_conductor == usuario.id_usuario);
+            if (rutas.length > 0) {
+                const info = L.control({position:'topright'});
+                info.onAdd = function() {
+                    const div = L.DomUtil.create('div');
+                    div.style.cssText = 'background:white;padding:10px 14px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.2);font-size:.9rem;max-width:220px';
+                    div.innerHTML = '<strong>Mi ruta</strong><br>' + rutas.map(r => r.nombre + ' (' + r.zona + ')').join('<br>');
+                    return div;
+                };
+                info.addTo(mapa);
+            }
+        }
         rutas.forEach(ruta => {
             if (!ruta.contenedores || !ruta.contenedores.length) return;
             const puntos = ruta.contenedores.map((c,i) => coords(c.zona, c.orden_en_ruta||i));
             L.polyline(puntos, { color: ruta.color||'#1a5c52', weight:3, opacity:.8, dashArray:'7 4' })
                 .addTo(mapa)
                 .bindPopup(`<strong>${ruta.nombre}</strong><br>${ruta.zona} — ${ruta.contenedores.length} contenedores`);
+
+            if (ruta.centro_destino) {
+                const lastPt = puntos[puntos.length - 1];
+                const centroCoord = [lastPt[0] + 0.003, lastPt[1] + 0.002];
+                L.marker(centroCoord, { icon: L.divIcon({ className:'', iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-12],
+                    html:`<div style="width:20px;height:20px;background:#e8a838;border:2px solid white;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold">C</div>` })
+                }).addTo(mapa).bindPopup(`<strong>Centro destino</strong><br>${ruta.centro_destino}`);
+                L.polyline([lastPt, centroCoord], { color: ruta.color||'#1a5c52', weight:2, opacity:.5, dashArray:'3 6' }).addTo(mapa);
+            }
 
             ruta.contenedores.forEach((c,i) => {
                 const color = c.estado==='funcional' ? (ruta.color||'#1a5c52')
