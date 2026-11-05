@@ -73,7 +73,7 @@ async function cambiarEstado(id, estado) {
     const accion = estado === 'activo' ? 'aprobar' : 'desactivar';
     if (!confirm(`¿Seguro que querés ${accion} este usuario?`)) return;
     try {
-        await fetch(`${API_USUARIOS}/usuarios/${id}`, {
+        await fetch(`${API_USUARIOS}/usuarios/${id}/estado`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estado })
