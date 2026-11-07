@@ -1,6 +1,7 @@
 const usuario = getUsuario();
 let contenedores = [];
 let tiposResiduo = [];
+let rutasDisponibles = [];
 const esOperario = usuario && usuario.rol === 'operario';
 
 if (esOperario) {
@@ -10,6 +11,7 @@ if (esOperario) {
 
 cargarContenedores();
 cargarTiposResiduo();
+cargarRutas();
 
 async function cargarTiposResiduo() {
     try {
@@ -21,6 +23,21 @@ async function cargarTiposResiduo() {
     } catch (e) {
         console.error('Error cargando tipos residuo:', e);
     }
+}
+
+async function cargarRutas() {
+    try {
+        const res = await fetch(API_GESTION + '/rutas');
+        rutasDisponibles = await res.json();
+    } catch (e) {
+        console.error('Error cargando rutas:', e);
+    }
+}
+
+function llenarDropdownRuta(idRutaActual) {
+    const sel = document.getElementById('id_ruta');
+    sel.innerHTML = '<option value="">Sin asignar</option>' +
+        rutasDisponibles.map(r => `<option value="${r.id_ruta}" ${idRutaActual == r.id_ruta ? 'selected' : ''}>${r.nombre} (${r.zona})</option>`).join('');
 }
 
 async function cargarContenedores() {
@@ -69,6 +86,7 @@ function abrirModal() {
     document.getElementById('modal-titulo').textContent = 'Agregar contenedor';
     document.getElementById('form-contenedor').reset();
     document.getElementById('contenedor-id').value = '';
+    llenarDropdownRuta(null);
     document.getElementById('modal').classList.add('active');
 }
 
@@ -85,6 +103,7 @@ function editar(id) {
     document.getElementById('zona').value = c.zona;
     document.getElementById('estado').value = c.estado;
     document.getElementById('id_tipo_residuo').value = c.id_tipo_residuo || '';
+    llenarDropdownRuta(c.id_ruta);
     document.getElementById('modal').classList.add('active');
 }
 
@@ -105,7 +124,8 @@ document.getElementById('form-contenedor').addEventListener('submit', async (e) 
         ubicacion: document.getElementById('ubicacion').value,
         zona: document.getElementById('zona').value,
         estado: document.getElementById('estado').value,
-        id_tipo_residuo: document.getElementById('id_tipo_residuo').value || null
+        id_tipo_residuo: document.getElementById('id_tipo_residuo').value || null,
+        id_ruta: document.getElementById('id_ruta').value || null
     };
 
     try {

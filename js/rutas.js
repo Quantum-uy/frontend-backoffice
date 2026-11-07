@@ -65,7 +65,7 @@ async function cargarRutas() {
 
 function renderListaConductor(data) {
     const container = document.getElementById('lista-rutas-conductor');
-    const misRutas = data.filter(r => r.id_conductor == usuario.id_usuario);
+    const misRutas = data.filter(r => r.id_conductor == usuario.id_usuario || r.id_peon == usuario.id_usuario);
 
     if (misRutas.length === 0) {
         container.innerHTML = '<div class="card" style="padding:2rem;text-align:center;color:#888">No tenés rutas asignadas por el momento.</div>';
