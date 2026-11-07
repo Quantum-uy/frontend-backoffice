@@ -288,7 +288,7 @@
                 ]);
                 document.getElementById('stat-incidencias').textContent = incidencias.filter(i => i.estado === 'abierta').length;
 
-                const misRutas = rutas.filter(r => r.id_conductor == usuario.id_usuario);
+                const misRutas = rutas.filter(r => r.id_conductor == usuario.id_usuario || r.id_peon == usuario.id_usuario);
                 const miRuta = misRutas[0];
 
                 const asignacion = document.getElementById('mi-asignacion');
