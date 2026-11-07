@@ -76,9 +76,36 @@ const coordsPorZona = {
     'Reducto':[-34.8870,-56.1880],'Prado':[-34.8800,-56.1950],
 };
 
-function coords(zona, idx) {
+function coordsFallback(zona, idx) {
     const base = coordsPorZona[zona] || [-34.9011,-56.1645];
     return [base[0] + Math.sin(idx*2.3)*0.0025, base[1] + Math.cos(idx*1.7)*0.0025];
+}
+
+const geoCache = {};
+async function geocodificar(direccion, zona, idx) {
+    if (!direccion) return coordsFallback(zona, idx);
+    if (geoCache[direccion]) return geoCache[direccion];
+    try {
+        const q = direccion + ', Montevideo, Uruguay';
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=uy&limit=1`);
+        const d = await r.json();
+        if (d.length) {
+            const c = [parseFloat(d[0].lat), parseFloat(d[0].lon)];
+            geoCache[direccion] = c;
+            return c;
+        }
+    } catch(e) { console.warn('Geocoding falló para:', direccion); }
+    const fb = coordsFallback(zona, idx);
+    geoCache[direccion] = fb;
+    return fb;
+}
+
+async function geocodificarTodos(items) {
+    const direcciones = [...new Set(items.map(i => i.ubicacion).filter(Boolean))];
+    for (let i = 0; i < direcciones.length; i++) {
+        await geocodificar(direcciones[i], null, i);
+        if (i < direcciones.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
 }
 
 function iconContenedor(color) {
@@ -112,11 +139,15 @@ document.getElementById('buscar-direccion').addEventListener('keydown', e => { i
 
 async function iniciarMapa() {
     mapa = L.map('mapa-leaflet', { center:[-34.9058,-56.1645], zoom:14 });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:'© OpenStreetMap', maxZoom:19
     }).addTo(mapa);
+    tiles.on('tileerror', function() {
+        document.getElementById('mapa-leaflet').insertAdjacentHTML('afterbegin',
+            '<div style="position:absolute;z-index:999;top:10px;left:50%;transform:translateX(-50%);background:#fff3cd;color:#856404;padding:8px 16px;border-radius:6px;font-size:.85rem;box-shadow:0 2px 6px rgba(0,0,0,.15)">Tiles del mapa con problemas de carga</div>');
+        tiles.off('tileerror');
+    });
 
-    // Rutas con contenedores
     try {
         let rutas = await fetch(API_GESTION + '/rutas').then(r=>r.json());
         if (esConductorOPeon) {
@@ -132,16 +163,24 @@ async function iniciarMapa() {
                 info.addTo(mapa);
             }
         }
-        rutas.forEach(ruta => {
-            if (!ruta.contenedores || !ruta.contenedores.length) return;
-            const puntos = ruta.contenedores.map((c,i) => coords(c.zona, c.orden_en_ruta||i));
+
+        const todosConts = rutas.flatMap(r => (r.contenedores || []).map(c => ({ubicacion: c.ubicacion})));
+        await geocodificarTodos(todosConts);
+
+        for (const ruta of rutas) {
+            if (!ruta.contenedores || !ruta.contenedores.length) continue;
+            const puntos = [];
+            for (let i = 0; i < ruta.contenedores.length; i++) {
+                const c = ruta.contenedores[i];
+                puntos.push(await geocodificar(c.ubicacion, c.zona, c.orden_en_ruta||i));
+            }
             L.polyline(puntos, { color: ruta.color||'#1a5c52', weight:3, opacity:.8, dashArray:'7 4' })
                 .addTo(mapa)
                 .bindPopup(`<strong>${ruta.nombre}</strong><br>${ruta.zona} — ${ruta.contenedores.length} contenedores`);
 
             if (ruta.centro_destino) {
                 const lastPt = puntos[puntos.length - 1];
-                const centroCoord = [lastPt[0] + 0.003, lastPt[1] + 0.002];
+                const centroCoord = await geocodificar(ruta.centro_destino.split(' - ')[1], ruta.zona, 99);
                 L.marker(centroCoord, { icon: L.divIcon({ className:'', iconSize:[20,20], iconAnchor:[10,10], popupAnchor:[0,-12],
                     html:`<div style="width:20px;height:20px;background:#e8a838;border:2px solid white;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold">C</div>` })
                 }).addTo(mapa).bindPopup(`<strong>Centro destino</strong><br>${ruta.centro_destino}`);
@@ -152,21 +191,24 @@ async function iniciarMapa() {
                 const color = c.estado==='funcional' ? (ruta.color||'#1a5c52')
                             : c.estado==='desbordado' ? '#dc3545'
                             : c.estado==='danado'     ? '#e8a838' : '#999';
-                L.marker(coords(c.zona, c.orden_en_ruta||i), { icon: iconContenedor(color) })
+                const pos = geoCache[c.ubicacion] || coordsFallback(c.zona, c.orden_en_ruta||i);
+                L.marker(pos, { icon: iconContenedor(color) })
                     .addTo(mapa)
                     .bindPopup(`<strong>Contenedor #${c.id_contenedor}</strong><br>${c.ubicacion||''}<br><em>${c.zona||''}</em><br>Estado: <strong>${c.estado}</strong><br>Residuo: ${c.tipo_residuo||'-'}`);
             });
-        });
+        }
     } catch(e) { console.warn('Rutas:', e); }
 
-    // Incidencias abiertas
     try {
         const incs = await fetch(API_GESTION + '/incidencias').then(r=>r.json());
-        incs.filter(i=>i.estado!=='resuelta').forEach((inc,i) => {
-            L.marker(coords(inc.zona, i+50), { icon: iconIncidencia() })
+        for (let i = 0; i < incs.length; i++) {
+            const inc = incs[i];
+            if (inc.estado === 'resuelta') continue;
+            const pos = await geocodificar(inc.ubicacion, inc.zona, i+50);
+            L.marker(pos, { icon: iconIncidencia() })
                 .addTo(mapa)
                 .bindPopup(`<strong>INC-${String(inc.id_incidencia).padStart(5,'0')}</strong><br>Tipo: ${inc.tipo}<br>${inc.ubicacion||''}<br>Estado: <strong>${inc.estado}</strong>`);
-        });
+        }
     } catch(e) { console.warn('Incidencias:', e); }
 }
 

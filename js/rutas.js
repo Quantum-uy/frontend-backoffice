@@ -1,6 +1,7 @@
 const usuario = getUsuario();
 let rutas = [];
 let conductores = [];
+let peones = [];
 let camionesDisponibles = [];
 let centrosAcopio = [];
 const esConductorOPeon = usuario && (usuario.rol === 'conductor' || usuario.rol === 'peon');
@@ -15,12 +16,14 @@ if (!esConductorOPeon) cargarDropdowns();
 
 async function cargarDropdowns() {
     try {
-        const [cRes, camRes, centrosRes] = await Promise.all([
+        const [cRes, pRes, camRes, centrosRes] = await Promise.all([
             fetch(API_USUARIOS + '/conductores'),
+            fetch(API_USUARIOS + '/peones'),
             fetch(API_CAMIONES + '/camiones'),
             fetch(API_GESTION + '/centros-acopio')
         ]);
         conductores = await cRes.json();
+        peones = await pRes.json();
         camionesDisponibles = await camRes.json();
         centrosAcopio = await centrosRes.json();
     } catch (e) {
@@ -32,6 +35,10 @@ function llenarDropdowns(ruta) {
     const selCond = document.getElementById('id_conductor');
     selCond.innerHTML = '<option value="">Sin asignar</option>' +
         conductores.map(c => `<option value="${c.id_usuario}" ${ruta && ruta.id_conductor == c.id_usuario ? 'selected' : ''}>${c.nombre} ${c.apellido}</option>`).join('');
+
+    const selPeon = document.getElementById('id_peon');
+    selPeon.innerHTML = '<option value="">Sin asignar</option>' +
+        peones.map(p => `<option value="${p.id_usuario}" ${ruta && ruta.id_peon == p.id_usuario ? 'selected' : ''}>${p.nombre} ${p.apellido}</option>`).join('');
 
     const selCam = document.getElementById('id_camion_ruta');
     selCam.innerHTML = '<option value="">Sin asignar</option>' +
@@ -215,6 +222,7 @@ document.getElementById('form-ruta').addEventListener('submit', async (e) => {
         color:        document.getElementById('color').value,
         estado:       document.getElementById('estado').value,
         id_conductor: document.getElementById('id_conductor').value || null,
+        id_peon:      document.getElementById('id_peon').value || null,
         id_camion:    document.getElementById('id_camion_ruta').value || null,
         id_centro_destino: document.getElementById('id_centro_destino').value || null,
     };
